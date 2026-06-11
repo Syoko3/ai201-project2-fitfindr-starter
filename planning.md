@@ -16,18 +16,21 @@ You must have at least 3 tools. The three required tools are listed — add any 
 
 **What it does:**
 <!-- Describe what this tool does in 1–2 sentences -->
+This tool searches the mock listings dataset for items matching the description, optional size, and optional price ceiling.
 
 **Input parameters:**
 <!-- List each parameter, its type, and what it represents -->
-- `description` (str): ...
-- `size` (str): ...
-- `max_price` (float): ...
+- `description` (str): Keywords describing what the user is looking for
+- `size` (str): Size string to filter by, or None to skip size filtering. Matching is case-insensitive
+- `max_price` (float): Maximum price (inclusive), or None to skip price filtering.
 
 **What it returns:**
 <!-- Describe the return value — what fields does a result contain? -->
+A result contains a list of matching listing dicts, sorted by relevance (best match first).
 
 **What happens if it fails or returns nothing:**
 <!-- What should the agent do if no listings match? -->
+It returns an empty list if nothing matches. It does not raise an exception.
 
 ---
 
@@ -35,17 +38,20 @@ You must have at least 3 tools. The three required tools are listed — add any 
 
 **What it does:**
 <!-- Describe what this tool does in 1–2 sentences -->
+This tool is to suggest 1-2 complete outfits with a given thrifted item and the user's wardrobe.
 
 **Input parameters:**
 <!-- List each parameter, its type, and what it represents -->
-- `new_item` (dict): ...
-- `wardrobe` (dict): ...
+- `new_item` (dict): A listing dict (the item the user is considering buying).
+- `wardrobe` (dict): A wardrobe dict with an 'items' key containing a list of wardrobe item dicts.
 
 **What it returns:**
 <!-- Describe the return value -->
+It returns a non-empty string with outfit suggestions.
 
 **What happens if it fails or returns nothing:**
 <!-- What should the agent do if the wardrobe is empty or no outfit can be suggested? -->
+If the wardrobe is empty, it offers a general styling advice for the item rather than raising an exception or returning an empty string.
 
 ---
 
@@ -53,16 +59,20 @@ You must have at least 3 tools. The three required tools are listed — add any 
 
 **What it does:**
 <!-- Describe what this tool does in 1–2 sentences -->
+This tool generates a short, shareable outfit caption for the thrifted find.
 
 **Input parameters:**
 <!-- List each parameter, its type, and what it represents -->
-- `outfit` (...): ...
+- `outfit` (str): The outfit suggestion string from suggest_outfit().
+- `new_item` (dict): The listing dict for the thrifted item.
 
 **What it returns:**
 <!-- Describe the return value -->
+It returns a 2–4 sentence string usable as an Instagram/TikTok caption.
 
 **What happens if it fails or returns nothing:**
 <!-- What should the agent do if the outfit data is incomplete? -->
+If outfit is empty or missing, it returns a descriptive error message string. It does not raise an exception.
 
 ---
 
@@ -76,6 +86,7 @@ You must have at least 3 tools. The three required tools are listed — add any 
 
 **How does your agent decide which tool to call next?**
 <!-- Describe the logic your planning loop uses. What does it look at? What conditions change its behavior? How does it know when it's done? -->
+
 
 ---
 
