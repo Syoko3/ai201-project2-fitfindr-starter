@@ -134,6 +134,8 @@ For each tool, describe the specific failure mode you're handling and what the a
 
 Write out what a full user interaction looks like from start to finish — tool call by tool call. Use a specific example query.
 
+FitFindr needs to filter and search through available vintage listings across popular platforms. It also needs to traverse the user's current closet with newly found pieces to eliminate purchase friction.
+
 **Example user query:** "I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers. What's out there and how would I style it?"
 
 **Step 1:**
