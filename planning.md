@@ -86,7 +86,7 @@ If outfit is empty or missing, it returns a descriptive error message string. It
 
 **How does your agent decide which tool to call next?**
 <!-- Describe the logic your planning loop uses. What does it look at? What conditions change its behavior? How does it know when it's done? -->
-
+After running the search_listings tool, it checks whether the result is an empty list or not. If it is an empty list, then it returns just an error message. Otherwise, it selects the most relevant listing and checks if a user wardrobe context is available. Then, it runs the suggest_outfit tool, and returns a 1-2 outfit combinations as a string. If the wardrobe is empty, then it creates a general styling advice for the item. Then, it runs the create_fit_card tool, and builds a shareable outfit caption for social media. If the outfit is empty, then it returns a descriptive error message.
 
 ---
 
@@ -94,6 +94,7 @@ If outfit is empty or missing, it returns a descriptive error message string. It
 
 **How does information from one tool get passed to the next?**
 <!-- Describe how your agent stores and accesses state within a session. What data is tracked? How is it passed between tool calls? -->
+My agent stores the user input, then extracts the filters and runs the search_listings tool, then accesses the listings.json to find the matches as the list. Then, the list is passed to the suggest_outfit tool call by selecting the best-matching item and fetching the wardrobe context. It ensures that the state of the wardrobe data is populated, and then it calls the suggest_outfit tool. After that, the agent calls the create_fit_card tool with generated outfit from the result of the suggest_outfit tool call and selected item. Then, the final caption is presented to the user.
 
 ---
 
@@ -103,9 +104,9 @@ For each tool, describe the specific failure mode you're handling and what the a
 
 | Tool | Failure mode | Agent response |
 |------|-------------|----------------|
-| search_listings | No results match the query | |
-| suggest_outfit | Wardrobe is empty | |
-| create_fit_card | Outfit input is missing or incomplete | |
+| search_listings | No results match the query |  |
+| suggest_outfit | Wardrobe is empty |  |
+| create_fit_card | Outfit input is missing or incomplete |  |
 
 ---
 
@@ -136,6 +137,7 @@ For each tool, describe the specific failure mode you're handling and what the a
      before trusting it" is a plan. -->
 
 **Milestone 3 — Individual tool implementations:**
+I will give Claude my tool 
 
 **Milestone 4 — Planning loop and state management:**
 
@@ -151,12 +153,15 @@ FitFindr needs to filter and search through available vintage listings across po
 
 **Step 1:**
 <!-- What does the agent do first? Which tool is called? With what input? -->
+The agent has to use the search_listings tool to 
 
 **Step 2:**
 <!-- What happens next? What was returned from step 1? What tool is called now? -->
 
+
 **Step 3:**
 <!-- Continue until the full interaction is complete -->
+
 
 **Final output to user:**
 <!-- What does the user actually see at the end? -->
