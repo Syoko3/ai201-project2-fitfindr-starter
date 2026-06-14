@@ -13,6 +13,7 @@ Tools:
 """
 
 import os
+import re
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -69,8 +70,45 @@ def search_listings(
 
     Before writing code, fill in the Tool 1 section of planning.md.
     """
-    # Replace this with your implementation
-    return []
+    listings = load_listings()
+
+    # Keywords from the description, lowercased and deduped.
+    keywords = {word for word in re.findall(r"[a-z0-9]+", description.lower())}
+
+    results = []
+    for listing in listings:
+        # Filter by price ceiling (inclusive).
+        if max_price is not None and listing.get("price", 0) > max_price:
+            continue
+
+        # Filter by size — case-insensitive, allows partial matches like
+        # "M" matching "S/M".
+        if size is not None:
+            listing_size = (listing.get("size") or "").lower()
+            if size.lower() not in listing_size:
+                continue
+
+        # Score by keyword overlap across the listing's text fields.
+        searchable = " ".join([
+            listing.get("title", ""),
+            listing.get("description", ""),
+            listing.get("category", ""),
+            listing.get("brand") or "",
+            " ".join(listing.get("style_tags", [])),
+            " ".join(listing.get("colors", [])),
+        ]).lower()
+        listing_words = set(re.findall(r"[a-z0-9]+", searchable))
+        score = len(keywords & listing_words)
+
+        # Drop listings with no relevant keyword matches.
+        if score == 0:
+            continue
+
+        results.append((score, listing))
+
+    # Sort by score, highest first; preserve dataset order for ties.
+    results.sort(key=lambda pair: pair[0], reverse=True)
+    return [listing for _, listing in results]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -100,8 +138,58 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
     Before writing code, fill in the Tool 2 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+    client = _get_groq_client()
+
+    # Describe the thrifted item for the prompt.
+    item_desc = (
+        f"- Title: {new_item.get('title', 'Unknown item')}\n"
+        f"- Category: {new_item.get('category', 'unknown')}\n"
+        f"- Colors: {', '.join(new_item.get('colors', [])) or 'unspecified'}\n"
+        f"- Style: {', '.join(new_item.get('style_tags', [])) or 'unspecified'}\n"
+        f"- Condition: {new_item.get('condition', 'unknown')}"
+    )
+
+    items = wardrobe.get("items", []) if wardrobe else []
+
+    if not items:
+        # Empty wardrobe: ask for general styling advice instead of crashing.
+        system_prompt = (
+            "You are FitFindr, a friendly thrift-stylist assistant. The user is "
+            "considering buying a secondhand item but hasn't shared their wardrobe. "
+            "Give general styling advice: what kinds of pieces pair well with it, "
+            "what vibe it suits, and one or two example outfit ideas. Keep it warm, "
+            "specific, and concise."
+        )
+        user_prompt = f"Here's the item I'm thinking of buying:\n{item_desc}"
+    else:
+        # Format the wardrobe so the model can name specific pieces.
+        wardrobe_lines = "\n".join(
+            f"- {w.get('name', 'item')} "
+            f"({w.get('category', '?')}; "
+            f"{', '.join(w.get('colors', [])) or 'no colors'}; "
+            f"{', '.join(w.get('style_tags', [])) or 'no tags'})"
+            for w in items
+        )
+        system_prompt = (
+            "You are FitFindr, a friendly thrift-stylist assistant. Suggest 1-2 "
+            "complete outfits that combine the new thrifted item with specific "
+            "pieces the user already owns. Refer to wardrobe pieces by name. "
+            "Explain briefly why each outfit works. Keep it warm and concise."
+        )
+        user_prompt = (
+            f"New thrifted item:\n{item_desc}\n\n"
+            f"My current wardrobe:\n{wardrobe_lines}"
+        )
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.7,  # a little creativity for styling variety
+    )
+    return response.choices[0].message.content
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -133,5 +221,42 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     Before writing code, fill in the Tool 3 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+    # Guard against a missing or empty/whitespace-only outfit string.
+    if not outfit or not outfit.strip():
+        return (
+            "Couldn't create a fit card — no outfit suggestion was provided. "
+            "Run suggest_outfit() first to get styling ideas, then try again."
+        )
+
+    client = _get_groq_client()
+
+    title = new_item.get("title", "this thrifted find")
+    price = new_item.get("price")
+    price_str = f"${price:.0f}" if isinstance(price, (int, float)) else "a steal"
+    platform = new_item.get("platform", "secondhand")
+
+    system_prompt = (
+        "You are FitFindr, writing a short, shareable OOTD caption for a thrift "
+        "find. Write 2-4 sentences that feel casual and authentic — like a real "
+        "outfit-of-the-day post, not a product description. Mention the item "
+        "name, its price, and the platform naturally, once each. Capture the "
+        "outfit's vibe in specific terms. A couple of emojis are fine; no "
+        "hashtag dumps."
+    )
+    user_prompt = (
+        f"Item: {title}\n"
+        f"Price: {price_str}\n"
+        f"Platform: {platform}\n\n"
+        f"Outfit the person is wearing it with:\n{outfit}\n\n"
+        "Write the caption."
+    )
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=1.0,  # high temperature so captions vary run to run
+    )
+    return response.choices[0].message.content
