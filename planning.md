@@ -94,7 +94,7 @@ After running the search_listings tool, it checks whether the result is an empty
 
 **How does information from one tool get passed to the next?**
 <!-- Describe how your agent stores and accesses state within a session. What data is tracked? How is it passed between tool calls? -->
-My agent stores the user input, then extracts the filters and runs the search_listings tool, then accesses the listings.json to find the matches as the list. Then, the list is passed to the suggest_outfit tool call by selecting the best-matching item and fetching the wardrobe context. It ensures that the state of the wardrobe data is populated, and then it calls the suggest_outfit tool. After that, the agent calls the create_fit_card tool with generated outfit from the result of the suggest_outfit tool call and selected item. Then, the final caption is presented to the user.
+My agent stores the user input, then extracts the filters and runs the search_listings tool, then accesses the listings.json to find the matches as the list. The extracted search parameters (description, size, max_price) are tracked in the search_listings tool. Then, the list is passed to the suggest_outfit tool call by selecting the best-matching item and fetching the wardrobe context. It ensures that the state of the wardrobe data is populated, and then it calls the suggest_outfit tool. The selected_item and the wardrobe_data are tracked in the suggest_outfit tool. After that, the agent calls the create_fit_card tool with generated outfit from the result of the suggest_outfit tool call and selected item. The selected_item and the generated_outfit are tracked in the create_fit_card tool. Then, the final caption is presented to the user. 
 
 ---
 
@@ -104,9 +104,9 @@ For each tool, describe the specific failure mode you're handling and what the a
 
 | Tool | Failure mode | Agent response |
 |------|-------------|----------------|
-| search_listings | No results match the query |  |
-| suggest_outfit | Wardrobe is empty |  |
-| create_fit_card | Outfit input is missing or incomplete |  |
+| search_listings | No results match the query | It stops the progression to the styling phase, and prints a message stating no exact items matched the current combination of description, size, or price filters. Then, it attempts for the suggestion of loosening the parameters to the user. |
+| suggest_outfit | Wardrobe is empty | It uses the personalized wardrobe matching loop and independent metadata of the thrifted item to generate the structural styling advice. |
+| create_fit_card | Outfit input is missing or incomplete | It generates a caption that includes independent item metadata to ensure the user still walks away with a ready-to-post social media caption. |
 
 ---
 
@@ -120,6 +120,29 @@ For each tool, describe the specific failure mode you're handling and what the a
      ASCII art, a Mermaid diagram (https://mermaid.js.org/syntax/flowchart.html), or an embedded
      sketch are all fine. You'll share this diagram with an AI tool when asking it to implement
      the planning loop and each individual tool. -->
+User Input
+    │
+    v
+Planning Loop ───────────────────────────────────────────┐
+    │                                                    │
+    ├─> search_listings(description, size, max_price)    │
+    │       │ results=[]                                 │
+    │       ├─> [ERROR] "No listings found..." -> return │
+    │       │                                            │
+    │       │ results=[item, ...]                        │
+    │       v                                            │
+    │   Session: selected_item = results[0]              │
+    │       │                                            │
+    ├─> suggest_outfit(selected_item, wardrobe)          │
+    │       │                                            │
+    │   Session: outfit_suggestion = "..."               │
+    │       │                                            │
+    └─> create_fit_card(outfit_suggestion, selected_item)│
+            │                                            │
+        Session: fit_card = "..."                        │
+            │                                            └─ error path returns here
+            v
+        Return session 
 
 ---
 
@@ -137,9 +160,10 @@ For each tool, describe the specific failure mode you're handling and what the a
      before trusting it" is a plan. -->
 
 **Milestone 3 — Individual tool implementations:**
-I will give Claude my tool 
+I will give Claude my Tool 1 spec and ask it to implement search_listings() using load_listings() from the data loader. Then, I will test it against 3 queries before trusting it. After that, I will give Claude my Tool 2 spec and ask it to implement suggest_outfit() using load_wardrobe_schema() from the data loader. After that, I will give Claude my Tool 3 spec and ask it to implement create_fit_card().
 
 **Milestone 4 — Planning loop and state management:**
+I will give ChatGPT my planning loop and state management spec and ask it to implement run_agent() in agent.py and handle_query() in app.py using the numbered steps in the respective files.
 
 ---
 
@@ -153,15 +177,16 @@ FitFindr needs to filter and search through available vintage listings across po
 
 **Step 1:**
 <!-- What does the agent do first? Which tool is called? With what input? -->
-The agent has to use the search_listings tool to 
+The agent uses the search_listings tool first to find the relevant pieces. The description is "vintage graphic tee", size is "None", and the max_price is "30.00".
 
 **Step 2:**
 <!-- What happens next? What was returned from step 1? What tool is called now? -->
-
+The tool returns the list of matching items under $30, and the planning loop isolates the top match, which has the id "lst_002" in the listings.json. This item is stored in the selected_item. The agent then calls the get_example_wardrobe() from the data loader and updates the wardrobe_data. After that, it calls the suggest_outfit tool to find the best outfit.
 
 **Step 3:**
 <!-- Continue until the full interaction is complete -->
-
+The tool looks the metadata against the user's closet tags, and it generates the detailed string and saves it to the generated_outfit. After that, the agent calls the create_fit_card tool with the generated_outfit and selected_item as the new_item.
 
 **Final output to user:**
 <!-- What does the user actually see at the end? -->
+The user actually sees a 2-4 sentence string containing the item match, the styling, and the ready-to-post social media caption.
