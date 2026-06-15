@@ -123,26 +123,42 @@ For each tool, describe the specific failure mode you're handling and what the a
 User Input
     │
     v
-Planning Loop ───────────────────────────────────────────┐
-    │                                                    │
-    ├─> search_listings(description, size, max_price)    │
-    │       │ results=[]                                 │
-    │       ├─> [ERROR] "No listings found..." -> return │
-    │       │                                            │
-    │       │ results=[item, ...]                        │
-    │       v                                            │
-    │   Session: selected_item = results[0]              │
-    │       │                                            │
-    ├─> suggest_outfit(selected_item, wardrobe)          │
-    │       │                                            │
-    │   Session: outfit_suggestion = "..."               │
-    │       │                                            │
-    └─> create_fit_card(outfit_suggestion, selected_item)│
-            │                                            │
-        Session: fit_card = "..."                        │
-            │                                            └─ error path returns here
-            v
-        Return session 
+Planning Loop ─────────────────────────────────────────────────────────────────┐
+    │                                                                          │
+    ├──> Initialize Session State (Load `wardrobe`)                            │
+    │                                                                          │
+    ├──> search_listings(description, size, max_price)                         │
+    │        │                                                                 │
+    │        ├──> [results == []] ──> [ERROR] "No listings found" ──> return ──┤
+    │        │                                                                 │
+    │        └──> [results != []] ──> State: selected_item = results[0]        |
+    │                                        |                                 │
+    |                                        v                                 |
+    ├──> suggest_outfit(selected_item, wardrobe_data)                          │
+    │        │                                                                 │
+    │        ├──> [wardrobe['items'] == []] ──> Standalone Styling             |
+    │        │                                  (Metadata Mode)                │
+    │        │                                                                 │
+    │        ├──> [wardrobe['items'] != []] ──> Personalized Closet            │
+    │        |                                  Cross-Reference                │
+    │        |                                                                 |
+    │        v                                                                 │
+    │    State: outfit_suggestion = "..."                                      │
+    │        |                                                                 |
+    |        v                                                                 │
+    └──> create_fit_card(outfit_suggestion, selected_item)                     │
+             │                                                                 │
+             ├──> [outfit_suggestion == ""] ──> Baseline Fallback              |
+             │                                  Caption Code                   │
+             │                                                                 │
+             ├──> [outfit_suggestion != ""] ──> Fully Customized               │
+             |                                  Platform Caption               │
+             |                                                                 |
+             v                                                                 │
+         State: fit_card = "..."                                               │
+             │                                                                 │
+             v                                                                 └─ error path returns here
+         Return Session 
 
 ---
 
