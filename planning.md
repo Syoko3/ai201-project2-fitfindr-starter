@@ -106,7 +106,7 @@ For each tool, describe the specific failure mode you're handling and what the a
 |------|-------------|----------------|
 | search_listings | No results match the query | It stops the progression to the styling phase, and prints a message stating no exact items matched the current combination of description, size, or price filters. Then, it attempts for the suggestion of loosening the parameters to the user. |
 | suggest_outfit | Wardrobe is empty | It uses the personalized wardrobe matching loop and independent metadata of the thrifted item to generate the structural styling advice. |
-| create_fit_card | Outfit input is missing or incomplete | It generates a caption that includes independent item metadata to ensure the user still walks away with a ready-to-post social media caption. |
+| create_fit_card | Outfit input is missing or incomplete | It prints an error message that it cannot generate the fit card without any outfit suggestion. |
 
 ---
 
@@ -148,8 +148,7 @@ Planning Loop ──────────────────────
     |        v                                                                 │
     └──> create_fit_card(outfit_suggestion, selected_item)                     │
              │                                                                 │
-             ├──> [outfit_suggestion == ""] ──> Baseline Fallback              |
-             │                                  Caption Code                   │
+             ├──> [outfit_suggestion == ""] ──> Error Message ─────> return ───┤
              │                                                                 │
              ├──> [outfit_suggestion != ""] ──> Fully Customized               │
              |                                  Platform Caption               │

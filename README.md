@@ -134,7 +134,7 @@ My planning loop shows that the user query is extracted into a description, size
 
 ## State Management Approach
 
-
+My agent stores the user input, then extracts its input to the description, size, and max_price to run the search_listings tool. After that, the search_listings tool accesses the listings.json to find the matches as the list. The extracted search parameters (description, size, max_price) are tracked in the search_listings tool. If the list is empty, then it prints a message that states no exact items matched the current combination of the extracted search parameters. The returned list is then passed to the suggest_outfit tool call by selecting the best-matching item and fetching the wardrobe context. It ensures that the state of the wardrobe data is populated, and then it calls the suggest_outfit tool. The selected_item and the wardrobe are tracked in the suggest_outfit tool. After that, the agent calls the create_fit_card tool with generated outfit from the result of the suggest_outfit tool call and selected item. The selected_item and the outfit_suggestion are tracked in the create_fit_card tool. Then, the final caption is presented to the user.
 
 ---
 
@@ -144,17 +144,17 @@ My planning loop shows that the user query is extracted into a description, size
 |------|-------------|----------------|
 | search_listings | No results match the query | It stops the progression to the styling phase, and prints a message stating no exact items matched the current combination of description, size, or price filters. Then, it attempts for the suggestion of loosening the parameters to the user. |
 | suggest_outfit | Wardrobe is empty | It uses the personalized wardrobe matching loop and independent metadata of the thrifted item to generate the structural styling advice. |
-| create_fit_card | Outfit input is missing or incomplete | It generates a caption that includes independent item metadata to ensure the user still walks away with a ready-to-post social media caption. |
+| create_fit_card | Outfit input is missing or incomplete | It prints an error message that it cannot generate the fit card without any outfit suggestion. |
 
 ---
 
 ## Spec Reflection
 
 **One way the spec helped you during implementation:**
-
+The spec helped me during implementation by referencing the architecture section to pass and keep track the data properly between the tool calls. It also helped me which AI model I used to implement so that I could reflect easier for the later AI usage section.
 
 **One way your implementation diverged from the spec, and why:**
-
+My implementation was diverged from the spec by the search_listings tool. The size matching has to be case-insensitive, and my implementation shows that it can handles partial matching like "M" matching "S/M", but size "L" matches "XL", "L/XL", or "XL (oversized)", so it search the listings containing XL sizes. It was because I never added the test cases for the adversarial sizes like "L" vs "XL", so the substring matching breaks down.
 
 ---
 
@@ -162,12 +162,12 @@ My planning loop shows that the user query is extracted into a description, size
 
 **Instance 1**
 
-- *What I gave the AI:* 
-- *What it produced:* 
-- *What I changed or overrode:* 
+- *What I gave the AI:* I gave Claude my Tools spec to implement each required tool, using load_listings() for search_listings and load_wardrobe_schema() for suggest_outfit from the data loader.
+- *What it produced:* It produced the implementation for search_listings, suggest_outfit, and create_fit_card tools. In the search_listings tool, it calls load_listings() from the data loader and filter the listings by price, size, and scoring for the keyword overlap in the description string across the listing's text fields.
+- *What I changed or overrode:* I verified the generated code using the example query and created the pytests in tests/test_tools.py. I ensured that the outputs and the pytests matched the project requirements and worked correctly with my planning loop architecture.
 
 **Instance 2**
 
-- *What I gave the AI:* 
-- *What it produced:* 
-- *What I changed or overrode:* 
+- *What I gave the AI:* I gave ChatGPT my planning loop and state management spec to implement run_agent() in agent.py and handle_query() in app.py, using the numbered steps in the respective files.
+- *What it produced:* It produced the code that matches my planning loop architecture for the run_agent() in agent.py. The handle_query() in app.py produced the code that handles the empty input, selects the wardrobe, runs the agent, handles the errors, formats the top listing, and returns outputs for three panels.
+- *What I changed or overrode:* I verified the generated code using the example query and ensured any variable or state names are matched in my architecture correctly.
